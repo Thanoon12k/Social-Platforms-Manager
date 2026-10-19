@@ -18,7 +18,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 from spm import adapt, bot, engine, media, platforms, store
-from spm.platforms import facebook, linkedin, tiktok
+from spm.platforms import facebook, linkedin, tiktok, youtube
 from spm.platforms.telegram import tg
 
 app = Flask(__name__)
@@ -325,6 +325,14 @@ def save_account(f):
                 for k in ("token", "refresh", "expires", "refresh_expires", "open_id", "name", "username"):
                     tk.pop(k, None)
             flash("انحفظ تيك توك")
+        elif s == "youtube":
+            yt = store.section(cfg, "youtube")
+            keep(yt, f, "client_id", "client_secret")
+            yt["privacy"] = f.get("privacy", "public")
+            if f.get("disconnect"):
+                for k in ("token", "refresh", "expires", "channel_id", "name"):
+                    yt.pop(k, None)
+            flash("انحفظ يوتيوب")
         elif s == "wordpress":
             w = store.section(cfg, "wordpress")
             w["url"], w["user"] = f.get("url", "").strip(), f.get("user", "").strip()
@@ -363,7 +371,7 @@ def save_account(f):
 
 # ---------- OAuth (LinkedIn, TikTok) ----------
 
-OAUTH = {"linkedin": (linkedin, "client_id"), "tiktok": (tiktok, "client_key")}
+OAUTH = {"linkedin": (linkedin, "client_id"), "tiktok": (tiktok, "client_key"), "youtube": (youtube, "client_id")}
 
 
 def redirect_uri(name):

@@ -3,9 +3,9 @@ publish(cfg, post, variant, media) -> {"ok", "id", "url", "error", "note"}.
 
 ORDER is the order posts go out in, one platform after the other.
 """
-from . import blog, facebook, instagram, linkedin, telegram, tiktok, wordpress
+from . import blog, facebook, instagram, linkedin, telegram, tiktok, wordpress, youtube
 
-ORDER = [linkedin, facebook, instagram, tiktok, telegram, blog, wordpress]
+ORDER = [linkedin, facebook, instagram, tiktok, youtube, telegram, blog, wordpress]
 BY_KEY = {m.KEY: m for m in ORDER}
 
 

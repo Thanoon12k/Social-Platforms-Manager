@@ -10,9 +10,9 @@ import re
 
 import requests
 
-LIMITS = {"linkedin": 3000, "facebook": 60000, "instagram": 2200, "tiktok": 2200, "telegram": 4096,
+LIMITS = {"linkedin": 3000, "facebook": 60000, "instagram": 2200, "tiktok": 2200, "youtube": 4900, "telegram": 4096,
           "blog": 100000, "wordpress": 100000}
-MAX_TAGS = {"linkedin": 5, "facebook": 3, "instagram": 15, "tiktok": 5, "telegram": 3, "blog": 0, "wordpress": 0}
+MAX_TAGS = {"linkedin": 5, "facebook": 3, "instagram": 15, "tiktok": 5, "youtube": 3, "telegram": 3, "blog": 0, "wordpress": 0}
 TAG = re.compile(r"#[\w؀-ۿ]+")
 
 PROVIDERS = [  # (config key, OpenAI-compatible endpoint, model)
@@ -27,12 +27,14 @@ STYLE = """You adapt ONE social media post for several platforms. Keep the autho
 - instagram: a hook first line, short lines, a few emojis, no URLs (say the link is in the bio).
 - tiktok: very short caption (<= 150 characters before hashtags), punchy hook.
 - telegram: concise, readable, keeps the link.
+- youtube_title: a searchable video title (<= 90 characters); youtube: a video description, first two lines
+  say what the video is about, then the details and the link.
 - blog_title: a clear headline (<= 80 characters); blog: a fuller article version in plain paragraphs
   separated by blank lines (no markdown headings), expanding only on what the post already says.
 - hashtags: 3-8 relevant hashtags without spaces, including any the author used.
 Do not put hashtags inside the texts; they are added per platform.
 Return JSON only: {"linkedin": "", "facebook": "", "instagram": "", "tiktok": "", "telegram": "",
-"blog_title": "", "blog": "", "hashtags": ["#..."]}"""
+"youtube_title": "", "youtube": "", "blog_title": "", "blog": "", "hashtags": ["#..."]}"""
 
 
 def split_tags(text, extra=()):
@@ -92,6 +94,8 @@ def rules(post):
     blog_body += f"\n\n{link}" if link and link not in blog_body else ""
     for k in ("blog", "wordpress"):
         out[k] = {"title": title, "text": blog_body, "tags": [t[1:] for t in tags]}
+    out["youtube"] = {"title": clip(title, 100), "text": compose("youtube", body, tags, link),
+                      "tags": [t[1:] for t in tags]}
     return out
 
 
@@ -117,6 +121,11 @@ def ai_rewrite(cfg, post):
     for k in ("linkedin", "facebook", "instagram", "tiktok", "telegram"):
         if (d.get(k) or "").strip():
             out[k]["text"] = compose(k, split_tags(d[k])[0], tags, "" if k == "tiktok" else link)
+    if (d.get("youtube") or "").strip():
+        out["youtube"]["text"] = compose("youtube", split_tags(d["youtube"])[0], tags, link)
+    if (d.get("youtube_title") or "").strip():
+        out["youtube"]["title"] = clip(d["youtube_title"], 100)
+    out["youtube"]["tags"] = [t[1:] for t in tags]
     if (d.get("blog") or "").strip():
         for k in ("blog", "wordpress"):
             out[k].update(title=clip(d.get("blog_title") or out[k]["title"], 100), text=d["blog"].strip(),

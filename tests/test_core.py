@@ -205,3 +205,51 @@ def test_web_app(env):
     key = store.load(store.CFG, {})["settings"]["tick_key"]
     assert c.get("/tick?key=bad").status_code == 403
     assert c.get(f"/tick?key={key}").get_json() == {"published": []}
+
+
+def test_youtube_upload(env, monkeypatch):
+    import time
+    from spm import adapt, store
+    from spm.platforms import youtube
+    vid = os.path.join(env["dir"], "v.mp4")
+    with open(vid, "wb") as f:
+        f.write(b"\0" * 2048)
+    calls = []
+
+    class R:
+        def __init__(self, code=200, data=None, headers=None):
+            self.status_code, self._d, self.headers, self.text = code, data or {}, headers or {}, ""
+
+        def json(self):
+            return self._d
+
+    def post(url, **kw):
+        calls.append(("POST", url, kw))
+        if url == youtube.TOKEN:
+            return R(data={"access_token": "NEW", "expires_in": 3600})
+        return R(headers={"Location": "https://upload.test/session"})
+
+    def put(url, **kw):
+        calls.append(("PUT", url, kw))
+        return R(data={"id": "abc123", "status": {"privacyStatus": "private"}})
+
+    monkeypatch.setattr(youtube.requests, "post", post)
+    monkeypatch.setattr(youtube.requests, "put", put)
+    cfg = {"youtube": {"client_id": "c", "client_secret": "s", "refresh": "r", "token": "OLD", "expires": time.time() - 5}}
+    with store.state() as (c, _):
+        c["youtube"] = dict(cfg["youtube"])
+    v = adapt.rules({"text": "عنوان الفيديو <جديد>\nوصف قصير #يوتيوب #شورتس"})["youtube"]
+    assert v["title"] == "عنوان الفيديو <جديد>" and v["tags"] == ["يوتيوب", "شورتس"]
+
+    class M:
+        kind = "image"
+
+        def video(self):
+            return vid
+
+    res = youtube.publish(cfg, {"id": 1, "text": "x"}, v, M())
+    assert res["ok"] and res["url"] == "https://youtu.be/abc123" and "خاص" in res["note"]
+    meta = calls[1][2]["json"]
+    assert meta["snippet"]["title"] == "عنوان الفيديو جديد" and meta["status"]["privacyStatus"] == "public"
+    assert calls[1][2]["headers"]["Authorization"] == "Bearer NEW"  # expired token was refreshed first
+    assert store.load(store.CFG, {})["youtube"]["token"] == "NEW"

@@ -1,7 +1,7 @@
 # 🛰️ مدير المنصات · Social Platforms Manager
 
 اكتب منشور واحد (نص، صورة، فيديو، أو صوت/موسيقى)، والنظام ينشره تلقائياً بكل المنصات، **وحدة وحدة**، ويعدّل
-المنشور حسب كل منصة، وبالنهاية يكلك: **«🎉 انتشر في كل المنصات (6/6)»**.
+المنشور حسب كل منصة، وبالنهاية يكلك: **«🎉 انتشر في كل المنصات (7/7)»**.
 
 | المنصة | شلون ينتشر |
 |---|---|
@@ -9,6 +9,7 @@
 | 📘 فيسبوك (صفحة) | Graph API: منشور نصي مع رابط، صورة، فيديو |
 | 📸 إنستغرام (حساب احترافي) | صورة، أو Reel للفيديو والصوت. النص يتحول **بطاقة صورة** تلقائياً |
 | 🎵 تيك توك | Content Posting API: فيديو. الصورة والنص والصوت تتحول فيديو تلقائياً (ffmpeg) |
+| ▶️ يوتيوب | YouTube Data API: فيديو، والصورة والنص والصوت تتحول فيديو عمودي (Short) مع عنوان ووصف وتاغات |
 | ✈️ قناة تيليجرام | رسالة / صورة / فيديو / ملف صوت |
 | 📰 مدونة الموقع | مدونة مدمجة على `/blog` مع RSS، جاهزة كموقع |
 | 🌐 ووردبريس (اختياري) | REST API + Application Password |
@@ -66,6 +67,9 @@ python -m pytest -q                 # الاختبارات (بدون إنترن�
 - **تيك توك:** تطبيق بـ developers.tiktok.com مع Login Kit + Content Posting API، Redirect:
   `https://موقعك/oauth/tiktok/callback`. ⚠️ قبل ما تيك توك **يدقق** التطبيق، المنشورات تطلع **خاصة** بس
   (النظام يعيد المحاولة كخاص ويكلك). قدّم التطبيق للتدقيق حتى تصير عامة، أو اختار وضع «مسودة بالتطبيق».
+- **يوتيوب:** مشروع بـ console.cloud.google.com مع YouTube Data API v3، OAuth client نوع Web application،
+  Redirect: `https://موقعك/oauth/youtube/callback`، وخلي شاشة الموافقة **In production** (بوضع Testing الربط يخلص بعد 7 أيام).
+  ⚠️ قبل ما Google يدقق المشروع، الفيديوهات تنرفع **خاصة** (النظام يكلك). قدّم على تدقيق YouTube API حتى تصير عامة.
 - **ووردبريس:** Users ← Profile ← Application Passwords.
 
 ## البنية
@@ -77,7 +81,7 @@ spm/engine.py       دورة حياة المنشور والنشر وحدة وح�
 spm/adapt.py        نسخة لكل منصة (قواعد + ذكاء اصطناعي اختياري)
 spm/media.py        بطاقة النص، JPEG، تحويل صورة/صوت/نص لفيديو
 spm/bot.py          بوت التحكم
-spm/platforms/      منصة لكل ملف: linkedin, facebook, instagram, tiktok, telegram, blog, wordpress
+spm/platforms/      منصة لكل ملف: linkedin, facebook, instagram, tiktok, youtube, telegram, blog, wordpress
 data/               الإعدادات والتوكنات والمنشورات والملفات (خارج git)
 ```
 

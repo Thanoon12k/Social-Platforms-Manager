@@ -2,7 +2,7 @@
 {% macro saved(v) %}{% if v %}<span class="ok">محفوظ ✓</span> <span class="mute">(اتركه فارغ حتى يبقى)</span>{% endif %}{% endmacro %}
 {% macro status(key) %}{% if checks.get(key) %}{% set c = checks[key] %}<p class="{{ 'ok' if c[0] else ('mute' if c[0] is none else 'bad') }}">{{ '🟢' if c[0] else ('⚪' if c[0] is none else '🔴') }} {{ c[1] }}</p>{% endif %}{% endmacro %}
 {% set t = cfg.get('telegram', {}) %}{% set fb = cfg.get('facebook', {}) %}{% set li = cfg.get('linkedin', {}) %}
-{% set tk = cfg.get('tiktok', {}) %}{% set wp = cfg.get('wordpress', {}) %}{% set bl = cfg.get('blog', {}) %}{% set ai = cfg.get('ai', {}) %}{% set st = cfg.get('settings', {}) %}
+{% set tk = cfg.get('tiktok', {}) %}{% set yt = cfg.get('youtube', {}) %}{% set wp = cfg.get('wordpress', {}) %}{% set bl = cfg.get('blog', {}) %}{% set ai = cfg.get('ai', {}) %}{% set st = cfg.get('settings', {}) %}
 
 <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">ربط المنصات</h2>
 <a class="btn ghost" href="/accounts?check=1">🩺 افحص كل الاتصالات</a></div>
@@ -81,6 +81,23 @@
   <div><label>الخصوصية</label><select name="privacy">{% for o, n in [('PUBLIC_TO_EVERYONE','عام'),('MUTUAL_FOLLOW_FRIENDS','الأصدقاء'),('FOLLOWER_OF_CREATOR','المتابعين'),('SELF_ONLY','أنا فقط')] %}
     <option value="{{ o }}" {{ 'selected' if (tk.privacy or 'PUBLIC_TO_EVERYONE') == o }}>{{ n }}</option>{% endfor %}</select></div></div>
   <div class="row" style="margin-top:12px"><button>احفظ</button>{% if tk.client_key %}<a class="btn ghost" href="/oauth/tiktok/start">🔗 ربط عبر تيك توك</a>{% endif %}{% if tk.token %}<button class="danger" name="disconnect" value="1">فك الربط</button>{% endif %}</div></form>
+</div>
+
+<div class="card" id="youtube">
+  <h2>▶️ يوتيوب</h2>{{ status('youtube') }}
+  {% if yt.name %}<p>القناة: <b>{{ yt.name }}</b></p>{% endif %}
+  <details><summary>طريقة الربط</summary><ol class="mute">
+    <li>بـ <a href="https://console.cloud.google.com/" target="_blank">console.cloud.google.com</a> سوّي مشروع وفعّل <b>YouTube Data API v3</b>.</li>
+    <li>OAuth consent screen: نوع External، ضيف إيميلك، وبعدين اضغط <b>Publish app</b> (In production)؛ بوضع Testing الربط يخلص بعد 7 أيام.</li>
+    <li>Credentials ← Create OAuth client ID ← <b>Web application</b>، و Authorized redirect URI: <code>{{ base }}/oauth/youtube/callback</code></li>
+    <li>حط Client ID و Secret واحفظ، بعدين «ربط عبر يوتيوب» واختار القناة.</li>
+    <li>كل منشور ينرفع فيديو: الصورة والنص والصوت تتحول فيديو عمودي (Short). قبل ما Google يدقق مشروعك الفيديوهات تطلع <b>خاصة</b>؛ قدّم على تدقيق YouTube API حتى تصير عامة.</li></ol></details>
+  <form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="section" value="youtube">
+  <div class="grid2"><div><label>Client ID {{ saved(yt.client_id) }}</label><input name="client_id" dir="ltr" autocomplete="off"></div>
+  <div><label>Client Secret {{ saved(yt.client_secret) }}</label><input name="client_secret" dir="ltr" type="password" autocomplete="off"></div></div>
+  <label>الخصوصية</label><select name="privacy">{% for o, n in [('public','عام'),('unlisted','غير مدرج (بالرابط فقط)'),('private','خاص')] %}
+    <option value="{{ o }}" {{ 'selected' if (yt.privacy or 'public') == o }}>{{ n }}</option>{% endfor %}</select>
+  <div class="row" style="margin-top:12px"><button>احفظ</button>{% if yt.client_id %}<a class="btn ghost" href="/oauth/youtube/start">🔗 ربط عبر يوتيوب</a>{% endif %}{% if yt.refresh or yt.token %}<button class="danger" name="disconnect" value="1">فك الربط</button>{% endif %}</div></form>
 </div>
 
 <div class="card" id="blog">

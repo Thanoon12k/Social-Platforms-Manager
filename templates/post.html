@@ -34,7 +34,7 @@
   <details {{ 'open' if m.KEY in p.targets }} style="margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:14px">
     <summary><label class="chip" style="display:inline-flex;margin:0" onclick="event.stopPropagation()"><input type="checkbox" name="targets" value="{{ m.KEY }}" {{ 'checked' if m.KEY in p.targets }} {{ 'disabled' if not editable }}> {{ m.ICON }} {{ m.NAME }}</label>
       <span class="mute" style="font-weight:400">· {{ v.text|length }} / {{ limits[m.KEY] }} حرف</span></summary>
-    {% if m.KEY in ('blog', 'wordpress') %}<label>عنوان المقال</label><input name="t_{{ m.KEY }}" value="{{ v.title or '' }}" {{ 'disabled' if not editable }}>{% endif %}
+    {% if m.KEY in ('blog', 'wordpress', 'youtube') %}<label>{{ 'عنوان الفيديو' if m.KEY == 'youtube' else 'عنوان المقال' }}</label><input name="t_{{ m.KEY }}" value="{{ v.title or '' }}" {{ 'disabled' if not editable }}>{% endif %}
     <label>النص</label><textarea name="v_{{ m.KEY }}" rows="7" maxlength="{{ limits[m.KEY] }}" {{ 'disabled' if not editable }}>{{ v.text }}</textarea>
   </details>{% endfor %}
   {% if editable %}<div class="row" style="margin-top:14px">
