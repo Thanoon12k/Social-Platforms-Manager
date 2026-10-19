@@ -36,7 +36,7 @@ def publish(cfg, post, v, media):
     slug = slugify(v.get("title", ""), post["id"])
     entry = {"pid": post["id"], "slug": slug, "title": v.get("title") or "منشور", "html": to_html(v["text"]),
              "summary": v["text"].strip()[:220], "tags": v.get("tags", []), "kind": media.kind,
-             "media": media.original and f"/m/{post['id']}/{post['token']}/{media.original.rsplit('/', 1)[-1]}",
+             "media": media.original and media.url(media.original),
              "at": store.now().isoformat(timespec="seconds")}
     entries = [e for e in entries if e["pid"] != post["id"]] + [entry]
     store.save(store.BLOG, entries)
