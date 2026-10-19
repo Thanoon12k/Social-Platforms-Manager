@@ -1,0 +1,16 @@
+name: publish scheduled posts
+# Wakes the site every 5 minutes so scheduled posts go out on time (not needed if worker.py runs).
+# Repository secret SPM_TICK_URL = the "tick" link from the dashboard settings: https://<site>/tick?key=...
+on:
+  schedule: [{cron: "*/5 * * * *"}]
+  workflow_dispatch:
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - env:
+          URL: ${{ secrets.SPM_TICK_URL }}
+        run: |
+          if [ -z "$URL" ]; then echo "SPM_TICK_URL not set, nothing to do"; exit 0; fi
+          curl -fsS -m 840 "$URL"

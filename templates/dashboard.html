@@ -1,0 +1,62 @@
+{% extends "base.html" %}{% block body %}
+{% set busy = counts.publishing or counts.queued %}
+<div class="grid" style="margin-bottom:16px">
+  <div class="card stat"><b>{{ posts|length }}</b><span>آخر المنشورات</span></div>
+  <div class="card stat"><b class="ok">{{ counts.done }}</b><span>انتشرت بكل المنصات</span></div>
+  <div class="card stat"><b class="warn">{{ counts.partial }}</b><span>جزئياً</span></div>
+  <div class="card stat"><b class="bad">{{ counts.failed }}</b><span>فشلت</span></div>
+  <div class="card stat"><b>{{ counts.scheduled }}</b><span>مجدولة</span></div>
+  <div class="card stat"><b>{{ sent }}</b><span>نشرة ناجحة على المنصات</span></div>
+</div>
+
+<div class="card">
+  <div class="row" style="justify-content:space-between"><h2 style="margin:0">المنصات</h2><a class="btn ghost" href="/accounts?check=1">🩺 افحص الاتصال</a></div>
+  <div class="grid" style="margin-top:12px">
+  {% for m in order %}<a class="plat" href="/accounts#{{ 'facebook' if m.KEY == 'instagram' else m.KEY }}" style="color:inherit;text-decoration:none">
+    <span class="ico">{{ m.ICON }}</span><div><b>{{ m.NAME }}</b><small>{{ "مربوط" if m.KEY in connected else "غير مربوط" }}</small></div>
+    <span class="dot {{ 'on' if m.KEY in connected }}"></span></a>{% endfor %}
+  </div>
+  {% if not cfg.get('telegram', {}).get('owner') %}<p class="mute">🤖 بوت التحكم بعده ما مربوط بحسابك. <a href="/accounts#telegram">اربطه</a> حتى تنشر من تيليجرام وتوصلك النتائج.</p>{% endif %}
+</div>
+
+<div class="card" id="compose">
+  <h2>✍️ منشور جديد</h2>
+  <form method="post" action="/compose" enctype="multipart/form-data"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>النص (الهاشتاكات تنحط تلقائياً لكل منصة حسب حدودها)</label>
+    <textarea name="text" rows="6" placeholder="اكتب المنشور هنا… #هاشتاك"></textarea>
+    <div class="grid2">
+      <div><label>عنوان (اختياري، للمدونة ولينكدإن)</label><input name="title"></div>
+      <div><label>رابط (اختياري)</label><input name="link" type="url" dir="ltr" placeholder="https://"></div>
+    </div>
+    <label>ملف: صورة، فيديو، أو صوت/موسيقى (اختياري)</label>
+    <input type="file" name="file" accept="image/*,video/*,audio/*">
+    <label>المنصات</label>
+    <div class="row">{% for m in order if m.KEY in connected %}<label class="chip"><input type="checkbox" name="targets" value="{{ m.KEY }}" checked>{{ m.ICON }} {{ m.NAME }}</label>{% else %}<span class="mute">ما كو منصة مربوطة بعد. <a href="/accounts">اربط المنصات</a></span>{% endfor %}</div>
+    {% if ai %}<p><label class="chip"><input type="checkbox" name="ai" value="1" {{ 'checked' if cfg.ai.default }}> ✨ صياغة خاصة لكل منصة بالذكاء الاصطناعي</label></p>{% endif %}
+    <div class="row" style="margin-top:14px">
+      <button name="action" value="publish">🚀 انشر الآن بكل المنصات</button>
+      <input type="datetime-local" name="when" style="width:auto" min="{{ now.strftime('%Y-%m-%dT%H:%M') }}">
+      <button name="action" value="schedule" class="ghost">🕒 جدولة</button>
+      <button name="action" value="draft" class="ghost">👁 معاينة وتعديل أول</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h2>المنشورات</h2>
+  <div class="scroll"><table>
+  <tr><th>#</th><th>المنشور</th><th>الحالة</th><th>المنصات</th><th>الوقت</th></tr>
+  {% for p in posts %}<tr>
+    <td><a href="/post/{{ p.id }}">#{{ p.id }}</a></td>
+    <td><a href="/post/{{ p.id }}" style="color:inherit">{{ KIND[p.media.kind] }} · {{ (p.title or p.text or '')[:70] }}</a></td>
+    <td><span class="pill">{{ STATUS[p.status] }}</span></td>
+    <td>{% for k in p.targets %}{% set r = p.results.get(k) %}<span title="{{ label(k) }}{% if r and r.error %}: {{ r.error }}{% endif %}">{% if r and r.ok %}{% if r.url %}<a href="{{ r.url }}" target="_blank" rel="noopener">{{ label(k).split(' ')[0] }}✅</a>{% else %}{{ label(k).split(' ')[0] }}✅{% endif %}{% elif r and r.ok is none %}{{ label(k).split(' ')[0] }}⏳{% elif r %}{{ label(k).split(' ')[0] }}❌{% else %}<span style="opacity:.4">{{ label(k).split(' ')[0] }}</span>{% endif %}</span> {% endfor %}</td>
+    <td class="mute">{{ fmt(p.finished or p.scheduled_at or p.created) }}</td>
+  </tr>{% else %}<tr><td colspan="5" class="mute">ما كو منشورات بعد. اكتب أول منشور فوك، أو ارسله للبوت.</td></tr>{% endfor %}
+  </table></div>
+</div>
+
+<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">آخر الأحداث</h2><a href="/log">السجل كامل</a></div>
+<table>{% for l in log %}<tr><td class="mute" style="white-space:nowrap">{{ fmt(l.at) }}</td><td class="{{ 'bad' if l.level == 'error' }}">{{ l.msg }}</td></tr>{% else %}<tr><td class="mute">فارغ</td></tr>{% endfor %}</table></div>
+{% if busy %}<script>setTimeout(function(){location.reload()},6000)</script>{% endif %}
+{% endblock %}

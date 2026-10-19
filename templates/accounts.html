@@ -1,0 +1,127 @@
+{% extends "base.html" %}{% block title %}ربط المنصات{% endblock %}{% block body %}
+{% macro saved(v) %}{% if v %}<span class="ok">محفوظ ✓</span> <span class="mute">(اتركه فارغ حتى يبقى)</span>{% endif %}{% endmacro %}
+{% macro status(key) %}{% if checks.get(key) %}{% set c = checks[key] %}<p class="{{ 'ok' if c[0] else ('mute' if c[0] is none else 'bad') }}">{{ '🟢' if c[0] else ('⚪' if c[0] is none else '🔴') }} {{ c[1] }}</p>{% endif %}{% endmacro %}
+{% set t = cfg.get('telegram', {}) %}{% set fb = cfg.get('facebook', {}) %}{% set li = cfg.get('linkedin', {}) %}
+{% set tk = cfg.get('tiktok', {}) %}{% set wp = cfg.get('wordpress', {}) %}{% set bl = cfg.get('blog', {}) %}{% set ai = cfg.get('ai', {}) %}{% set st = cfg.get('settings', {}) %}
+
+<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">ربط المنصات</h2>
+<a class="btn ghost" href="/accounts?check=1">🩺 افحص كل الاتصالات</a></div>
+<p class="mute">عنوان الموقع العام: <code>{{ base or '—' }}</code> — إنستغرام وتيك توك ينزّلون الملفات منه، ولازم يكون HTTPS ومفتوح للإنترنت.</p></div>
+
+<div class="grid2">
+<div class="card" id="telegram">
+  <h2>✈️ بوت التحكم + قناة تيليجرام</h2>{{ status('telegram') }}
+  <ol class="mute"><li>افتح <a href="https://t.me/BotFather" target="_blank">@BotFather</a> ← <code>/newbot</code> وانسخ التوكن.</li>
+  <li>ضيف البوت <b>أدمن</b> بقناتك (صلاحية نشر الرسائل).</li><li>حط التوكن ومعرّف القناة (<code>@mychannel</code> أو <code>-100…</code>) واحفظ.</li>
+  <li>افتح رابط الربط من حسابك حتى يصير البوت إلك وحدك.</li></ol>
+  <form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="section" value="telegram">
+  <label>توكن البوت {{ saved(t.token) }}</label><input name="token" dir="ltr" autocomplete="off">
+  <label>القناة</label><input name="channel" dir="ltr" value="{{ t.channel or '' }}" placeholder="@mychannel">
+  <label>طريقة استلام الرسائل</label><select name="mode">
+    <option value="webhook" {{ 'selected' if t.mode != 'polling' }}>Webhook (الموقع يستقبل مباشرة، مناسب لـ PythonAnywhere)</option>
+    <option value="polling" {{ 'selected' if t.mode == 'polling' }}>Polling (يحتاج worker.py شغال دائماً)</option></select>
+  <p><button>احفظ واربط</button></p></form>
+  {% if t.bot %}<p>البوت: <a href="https://t.me/{{ t.bot }}" target="_blank">@{{ t.bot }}</a> ·
+    {% if t.owner %}<span class="ok">مربوط بحسابك ✓</span>{% elif claim_link %}<a class="btn" href="{{ claim_link }}" target="_blank">🔗 افتح البوت واربطه بحسابك</a>{% endif %}</p>
+    {% if t.owner %}<form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="section" value="telegram"><button class="danger" name="unlink_owner" value="1">فك ربط صاحب البوت</button></form>{% endif %}{% endif %}
+</div>
+
+<div class="card" id="facebook">
+  <h2>📘 فيسبوك + 📸 إنستغرام</h2>{{ status('facebook') }}{{ status('instagram') }}
+  {% if fb.page_id %}<p>الصفحة: <b>{{ fb.page_name }}</b> <code>{{ fb.page_id }}</code>{% if fb.ig_id %} · إنستغرام: <b>@{{ fb.ig_username }}</b>{% else %} · <span class="warn">ما كو إنستغرام مربوط بالصفحة</span>{% endif %}</p>{% endif %}
+  <details><summary>طريقة الربط</summary><ol class="mute">
+    <li>حوّل إنستغرام لحساب <b>احترافي (Business/Creator)</b> واربطه بصفحة فيسبوك.</li>
+    <li>سوّي تطبيق بـ <a href="https://developers.facebook.com/apps" target="_blank">developers.facebook.com</a> (نوع Business).</li>
+    <li>من <a href="https://developers.facebook.com/tools/explorer" target="_blank">Graph API Explorer</a> اختار تطبيقك وخذ <b>User Token</b> بالصلاحيات:
+      <code>pages_show_list, pages_manage_posts, pages_read_engagement, instagram_basic, instagram_content_publish, business_management</code></li>
+    <li>حط App ID و App Secret حتى يتحول التوكن لتوكن دائم، والصق التوكن واحفظ.</li></ol></details>
+  <form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="section" value="facebook">
+  <div class="grid2"><div><label>App ID {{ saved(fb.app_id) }}</label><input name="app_id" dir="ltr" autocomplete="off"></div>
+  <div><label>App Secret {{ saved(fb.app_secret) }}</label><input name="app_secret" dir="ltr" type="password" autocomplete="off"></div></div>
+  <label>User Token (أو Page Token)</label><input name="user_token" dir="ltr" autocomplete="off">
+  <label>رقم الصفحة (اختياري، إذا عندك أكثر من صفحة)</label>
+  {% if fb.pages and fb.pages|length > 1 %}<select name="page_id">{% for pg in fb.pages %}<option value="{{ pg.id }}" {{ 'selected' if pg.id == fb.page_id }}>{{ pg.name }}</option>{% endfor %}</select>
+  {% else %}<input name="page_id" dir="ltr" value="{{ fb.page_id or '' }}">{% endif %}
+  <div class="row" style="margin-top:12px"><button>احفظ واربط</button>{% if fb.page_id %}<button class="danger" name="disconnect" value="1">فك الربط</button>{% endif %}</div></form>
+</div>
+
+<div class="card" id="linkedin">
+  <h2>💼 لينكدإن</h2>{{ status('linkedin') }}
+  {% if li.token %}<p>مربوط: <b>{{ li.name or li.author }}</b>{% if li.expires %} · التوكن يخلص {{ ts(li.expires) }}{% endif %}</p>{% endif %}
+  <details><summary>طريقة الربط</summary><ol class="mute">
+    <li>سوّي تطبيق بـ <a href="https://www.linkedin.com/developers/apps" target="_blank">linkedin.com/developers</a> واربطه بصفحة شركة (مطلوب للتطبيق فقط).</li>
+    <li>من Products فعّل: <b>Sign In with LinkedIn using OpenID Connect</b> و <b>Share on LinkedIn</b>.</li>
+    <li>بـ Auth ضيف Redirect URL: <code>{{ base }}/oauth/linkedin/callback</code></li>
+    <li>حط Client ID و Secret واحفظ، بعدين اضغط «ربط عبر لينكدإن». التوكن يعيش 60 يوم، أعد الربط لما ينبهك.</li></ol></details>
+  <form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="section" value="linkedin">
+  <div class="grid2"><div><label>Client ID {{ saved(li.client_id) }}</label><input name="client_id" dir="ltr" autocomplete="off"></div>
+  <div><label>Client Secret {{ saved(li.client_secret) }}</label><input name="client_secret" dir="ltr" type="password" autocomplete="off"></div></div>
+  <label>الناشر (اختياري): <code>urn:li:organization:123</code> للنشر كصفحة شركة</label><input name="author" dir="ltr" value="{{ li.author or '' }}">
+  <details><summary class="mute" style="font-weight:400">متقدم</summary>
+    <label>LinkedIn-Version (فارغ = تلقائي)</label><input name="version" dir="ltr" value="{{ li.version or '' }}" placeholder="YYYYMM">
+    <label>Access Token يدوي {{ saved(li.token) }}</label><input name="token" dir="ltr" autocomplete="off"></details>
+  <div class="row" style="margin-top:12px"><button>احفظ</button>{% if li.client_id %}<a class="btn ghost" href="/oauth/linkedin/start">🔗 ربط عبر لينكدإن</a>{% endif %}{% if li.token %}<button class="danger" name="disconnect" value="1">فك الربط</button>{% endif %}</div></form>
+</div>
+
+<div class="card" id="tiktok">
+  <h2>🎵 تيك توك</h2>{{ status('tiktok') }}
+  {% if tk.token %}<p>مربوط: <b>{{ tk.name }}</b>{% if tk.username %} @{{ tk.username }}{% endif %}</p>{% endif %}
+  <details><summary>طريقة الربط</summary><ol class="mute">
+    <li>سوّي تطبيق بـ <a href="https://developers.tiktok.com/apps" target="_blank">developers.tiktok.com</a> وضيف <b>Login Kit</b> و <b>Content Posting API</b> (فعّل Direct Post).</li>
+    <li>الصلاحيات: <code>user.info.basic, video.publish, video.upload</code></li>
+    <li>Redirect URI: <code>{{ base }}/oauth/tiktok/callback</code> وأثبت ملكية الدومين إذا طلب.</li>
+    <li>قبل ما تيك توك يدقق التطبيق، المنشورات تطلع <b>خاصة</b> بس. قدّم للتدقيق حتى تصير عامة.</li>
+    <li>الصور والنص والصوت تتحول تلقائياً لفيديو (يحتاج ffmpeg).</li></ol></details>
+  <form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="section" value="tiktok">
+  <div class="grid2"><div><label>Client Key {{ saved(tk.client_key) }}</label><input name="client_key" dir="ltr" autocomplete="off"></div>
+  <div><label>Client Secret {{ saved(tk.client_secret) }}</label><input name="client_secret" dir="ltr" type="password" autocomplete="off"></div></div>
+  <div class="grid2"><div><label>طريقة النشر</label><select name="mode">
+    <option value="direct" {{ 'selected' if tk.mode != 'inbox' }}>نشر مباشر</option>
+    <option value="inbox" {{ 'selected' if tk.mode == 'inbox' }}>مسودة بتطبيق تيك توك (تكمل النشر منه)</option></select></div>
+  <div><label>الخصوصية</label><select name="privacy">{% for o, n in [('PUBLIC_TO_EVERYONE','عام'),('MUTUAL_FOLLOW_FRIENDS','الأصدقاء'),('FOLLOWER_OF_CREATOR','المتابعين'),('SELF_ONLY','أنا فقط')] %}
+    <option value="{{ o }}" {{ 'selected' if (tk.privacy or 'PUBLIC_TO_EVERYONE') == o }}>{{ n }}</option>{% endfor %}</select></div></div>
+  <div class="row" style="margin-top:12px"><button>احفظ</button>{% if tk.client_key %}<a class="btn ghost" href="/oauth/tiktok/start">🔗 ربط عبر تيك توك</a>{% endif %}{% if tk.token %}<button class="danger" name="disconnect" value="1">فك الربط</button>{% endif %}</div></form>
+</div>
+
+<div class="card" id="blog">
+  <h2>📰 المدونة المدمجة</h2>{{ status('blog') }}
+  <p class="mute">كل منشور ينحط كمقال بـ <a href="/blog" target="_blank">{{ base }}/blog</a> مع RSS: <code>{{ base }}/blog/feed.xml</code></p>
+  <form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="section" value="blog">
+  <label>اسم المدونة</label><input name="title" value="{{ bl.title or 'المدونة' }}">
+  <label>وصف قصير</label><input name="about" value="{{ bl.about or '' }}">
+  <p><label class="chip"><input type="checkbox" name="off" value="1" {{ 'checked' if bl.off }}> إيقاف المدونة كمنصة نشر</label></p>
+  <button>احفظ</button></form>
+</div>
+
+<div class="card" id="wordpress">
+  <h2>🌐 موقع ووردبريس (اختياري)</h2>{{ status('wordpress') }}
+  <p class="mute">إذا عندك موقع ووردبريس: من لوحة التحكم ← Users ← Profile ← <b>Application Passwords</b> سوّي كلمة سر للتطبيق.</p>
+  <form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="section" value="wordpress">
+  <label>رابط الموقع</label><input name="url" dir="ltr" value="{{ wp.url or '' }}" placeholder="https://example.com">
+  <div class="grid2"><div><label>اسم المستخدم</label><input name="user" dir="ltr" value="{{ wp.user or '' }}"></div>
+  <div><label>Application Password {{ saved(wp.app_password) }}</label><input name="app_password" dir="ltr" type="password" autocomplete="off"></div></div>
+  <div class="row" style="margin-top:12px"><button>احفظ</button>{% if wp.url %}<button class="danger" name="disconnect" value="1">فك الربط</button>{% endif %}</div></form>
+</div>
+
+<div class="card" id="ai">
+  <h2>✨ الصياغة بالذكاء الاصطناعي (اختياري)</h2>
+  <p class="mute">يكتب نسخة بأسلوب كل منصة (رسمي للينكدإن، قصير لتيك توك…). مجاني: مفتاح من <a href="https://console.groq.com/keys" target="_blank">Groq</a> أو <a href="https://aistudio.google.com/apikey" target="_blank">Gemini</a>. بدونه تشتغل القواعد التلقائية.</p>
+  <form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="section" value="ai">
+  <div class="grid2"><div><label>Groq API Key {{ saved(ai.groq_key) }}</label><input name="groq_key" dir="ltr" type="password" autocomplete="off"></div>
+  <div><label>Gemini API Key {{ saved(ai.gemini_key) }}</label><input name="gemini_key" dir="ltr" type="password" autocomplete="off"></div></div>
+  <label>الموديل (اختياري)</label><input name="model" dir="ltr" value="{{ ai.model or '' }}">
+  <p><label class="chip"><input type="checkbox" name="default" value="1" {{ 'checked' if ai.default }}> فعّلها افتراضياً بكل منشور</label></p>
+  <div class="row"><button>احفظ</button>{% if ai.groq_key or ai.gemini_key %}<button class="danger" name="clear" value="1">امسح المفاتيح</button>{% endif %}</div></form>
+</div>
+
+<div class="card" id="settings">
+  <h2>⚙️ الإعدادات</h2>
+  <form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="section" value="settings">
+  <label>اسم/معرّف يظهر أسفل بطاقات النص (مثلاً @mybrand)</label><input name="brand" value="{{ st.brand or '' }}">
+  <div class="grid2"><div><label>فرق التوقيت عن UTC (ساعات)</label><input name="tz_hours" value="{{ st.tz_hours if st.tz_hours is defined else 3 }}" dir="ltr"></div>
+  <div><label>عنوان الموقع العام (فارغ = تلقائي)</label><input name="base_url" dir="ltr" value="{{ st.base_url if st.base_url_fixed else '' }}" placeholder="{{ base }}"></div></div>
+  <p class="mute">رابط النشر المجدول (للـ cron): <code>{{ base }}/tick?key={{ st.tick_key }}</code></p>
+  <div class="row"><button>احفظ</button><button class="ghost" name="new_tick_key" value="1">🔄 مفتاح tick جديد</button></div></form>
+</div>
+</div>
+{% endblock %}

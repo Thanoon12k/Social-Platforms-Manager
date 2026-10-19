@@ -1,0 +1,51 @@
+{% extends "base.html" %}{% block title %}منشور #{{ p.id }}{% endblock %}{% block body %}
+{% set editable = p.status in ('draft', 'scheduled', 'queued', 'partial', 'failed', 'cancelled') %}
+<div class="card">
+  <div class="row" style="justify-content:space-between">
+    <h2 style="margin:0">منشور #{{ p.id }} · {{ KIND[p.media.kind] }}</h2>
+    <span class="pill">{{ STATUS[p.status] }}{% if p.status == 'scheduled' %} · {{ fmt(p.scheduled_at) }}{% endif %}</span>
+  </div>
+  <p class="mute">أُنشئ {{ fmt(p.created) }} من {{ 'تيليجرام' if p.source == 'telegram' else 'الداشبورد' }}{% if p.note %} · {{ p.note }}{% endif %}</p>
+  {% if media_url %}{% if p.media.kind == 'image' %}<img class="thumb" src="{{ media_url }}" alt="">{% elif p.media.kind == 'video' %}<video class="thumb" src="{{ media_url }}" controls></video>{% else %}<audio src="{{ media_url }}" controls></audio>{% endif %}{% endif %}
+</div>
+
+{% if p.results %}<div class="card"><h2>نتيجة النشر</h2><table>
+{% for k in ordered %}{% set r = p.results.get(k) %}<tr><td style="white-space:nowrap">{{ label(k) }}</td><td>
+{% if not r %}<span class="mute">⏸ بالانتظار</span>{% elif r.ok is none %}⏳ جاري النشر…{% elif r.ok %}<span class="ok">✅</span> {% if r.url %}<a href="{{ r.url }}" target="_blank" rel="noopener" dir="ltr">{{ r.url }}</a>{% else %}تم{% endif %}{% if r.note %}<div class="mute">ℹ️ {{ r.note }}</div>{% endif %}{% else %}<span class="bad">❌ {{ r.error }}</span>{% endif %}
+</td><td class="mute">{{ fmt(r.at) if r }}</td></tr>{% endfor %}</table>
+{% if p.status in ('partial', 'failed') %}<form method="post" style="margin-top:12px"><input type="hidden" name="csrf" value="{{ csrf }}"><button name="action" value="retry">🔁 أعد المحاولة للمنصات الفاشلة</button></form>{% endif %}
+</div>{% endif %}
+
+<form method="post"><input type="hidden" name="csrf" value="{{ csrf }}">
+<div class="card">
+  <h2>النسخة الأصلية</h2>
+  <textarea name="text" rows="5" {{ 'disabled' if not editable }}>{{ p.text }}</textarea>
+  <div class="grid2"><div><label>عنوان</label><input name="title" value="{{ p.title or '' }}" {{ 'disabled' if not editable }}></div>
+  <div><label>رابط</label><input name="link" value="{{ p.link or '' }}" dir="ltr" {{ 'disabled' if not editable }}></div></div>
+  {% if editable %}<div class="row" style="margin-top:12px">
+    {% if ai %}<label class="chip"><input type="checkbox" name="ai" value="1" checked> ✨ بالذكاء الاصطناعي</label>{% endif %}
+    <button name="action" value="readapt" class="ghost">♻️ أعد الصياغة لكل منصة من النص الأصلي</button></div>{% endif %}
+</div>
+
+<div class="card">
+  <h2>النسخة الخاصة بكل منصة</h2>
+  <p class="mute">عدّل أي نسخة قبل النشر. اختار المنصات اللي ينتشر بيها.</p>
+  {% for m in order if m.KEY in connected or m.KEY in p.targets %}{% set v = variants[m.KEY] %}
+  <details {{ 'open' if m.KEY in p.targets }} style="margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:14px">
+    <summary><label class="chip" style="display:inline-flex;margin:0" onclick="event.stopPropagation()"><input type="checkbox" name="targets" value="{{ m.KEY }}" {{ 'checked' if m.KEY in p.targets }} {{ 'disabled' if not editable }}> {{ m.ICON }} {{ m.NAME }}</label>
+      <span class="mute" style="font-weight:400">· {{ v.text|length }} / {{ limits[m.KEY] }} حرف</span></summary>
+    {% if m.KEY in ('blog', 'wordpress') %}<label>عنوان المقال</label><input name="t_{{ m.KEY }}" value="{{ v.title or '' }}" {{ 'disabled' if not editable }}>{% endif %}
+    <label>النص</label><textarea name="v_{{ m.KEY }}" rows="7" maxlength="{{ limits[m.KEY] }}" {{ 'disabled' if not editable }}>{{ v.text }}</textarea>
+  </details>{% endfor %}
+  {% if editable %}<div class="row" style="margin-top:14px">
+    <button name="action" value="publish">🚀 انشر الآن</button>
+    <input type="datetime-local" name="when" style="width:auto" value="{{ p.scheduled_at[:16] if p.scheduled_at else '' }}">
+    <button name="action" value="schedule" class="ghost">🕒 جدولة</button>
+    <button name="action" value="save" class="ghost">💾 احفظ</button>
+    {% if p.status in ('draft', 'scheduled', 'queued') %}<button name="action" value="cancel" class="danger">إلغاء</button>{% endif %}
+  </div>{% endif %}
+</div>
+</form>
+{% if p.status != 'publishing' %}<form method="post" onsubmit="return confirm('أكيد تحذف المنشور من الداشبورد؟ (ما ينحذف من المنصات)')"><input type="hidden" name="csrf" value="{{ csrf }}"><button name="action" value="delete" class="danger">🗑 حذف من الداشبورد</button></form>{% endif %}
+{% if p.status in ('queued', 'publishing') %}<script>setTimeout(function(){location.reload()},5000)</script>{% endif %}
+{% endblock %}

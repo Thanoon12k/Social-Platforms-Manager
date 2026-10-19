@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block title %}السجل{% endblock %}{% block body %}
+<div class="card"><h2>السجل</h2><div class="scroll"><table>
+<tr><th>الوقت</th><th>منشور</th><th>الحدث</th></tr>
+{% for l in log %}<tr><td class="mute" style="white-space:nowrap">{{ fmt(l.at) }}</td>
+<td>{% if l.pid %}<a href="/post/{{ l.pid }}">#{{ l.pid }}</a>{% endif %}</td>
+<td class="{{ 'bad' if l.level == 'error' }}" style="word-break:break-word">{{ l.msg }}</td></tr>
+{% else %}<tr><td colspan="3" class="mute">فارغ</td></tr>{% endfor %}</table></div></div>
+{% endblock %}

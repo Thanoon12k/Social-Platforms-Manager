@@ -1,0 +1,7 @@
+{% extends "blog_base.html" %}{% block title %}{{ e.title }} · {{ blog.title or 'المدونة' }}{% endblock %}{% block desc %}{{ e.summary }}{% endblock %}
+{% block body %}<article>
+  <h2>{{ e.title }}</h2><div class="meta">{{ fmt(e.at) }}</div>
+  {% if e.media %}{% if e.kind == 'image' %}<img src="{{ e.media }}" alt="">{% elif e.kind == 'video' %}<video src="{{ e.media }}" controls playsinline></video>{% elif e.kind == 'audio' %}<audio src="{{ e.media }}" controls></audio>{% endif %}{% endif %}
+  <div class="body">{{ e.html|safe }}</div>
+  {% if e.tags %}<div class="tags">{% for t in e.tags %}<span>#{{ t }}</span>{% endfor %}</div>{% endif %}
+</article>{% endblock %}

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+<title>{{ blog.title or 'المدونة' }}</title><link>{{ base }}/blog</link><description>{{ blog.about or '' }}</description><language>ar</language>
+{% for e in entries %}<item><title>{{ e.title }}</title><link>{{ base }}/blog/{{ e.slug }}</link><guid>{{ base }}/blog/{{ e.slug }}</guid>
+<pubDate>{{ rfc822(e.at) }}</pubDate><description>{{ e.html }}</description></item>
+{% endfor %}</channel></rss>

@@ -1,0 +1,8 @@
+flask>=3.0
+requests
+pillow>=10
+# Arabic text on cards when Pillow has no libraqm:
+arabic-reshaper
+python-bidi
+# Only if the server has no ffmpeg (needed to turn photo/text/audio into video for TikTok and Reels):
+# imageio-ffmpeg
